@@ -1,6 +1,6 @@
 # Weather Forecasting Using LSTM
 
-An interactive, deep learning-powered weather forecasting application built with PyTorch and Streamlit. The application uses Long Short-Term Memory (LSTM) recurrent neural networks to capture temporal patterns in historical meteorological data and generate multi-step sequential forecasts.
+An interactive, deep learning-powered weather forecasting application built with TensorFlow/Keras and Streamlit. The application uses Long Short-Term Memory (LSTM) recurrent neural networks to capture temporal patterns in historical meteorological data and generate multi-step sequential forecasts.
 
 ---
 
@@ -17,8 +17,8 @@ Traditional statistical methods often struggle with nonlinear dependencies and l
 
 - **Interactive Streamlit Dashboard:** Web-based UI with parameter selection, date filters, and responsive charts.
 - **Data Preprocessing & Windowing:** Automated missing-value handling, feature scaling, and rolling sliding-window sequence generation for time-series models.
-- **LSTM Deep Learning Architecture:** PyTorch-based LSTM neural network designed for sequential time-series regression.
-- **Forecast Evaluation & Metrics:** Comprehensive performance tracking including Root Mean Squared Error (RMSE), Mean Absolute Error (MAE), and $R^2$ scores with visual actual-vs-predicted comparisons.
+- **LSTM Deep Learning Architecture:** TensorFlow/Keras LSTM neural network designed for sequential time-series regression.
+- **Forecast Evaluation & Metrics:** Comprehensive performance tracking including Root Mean Squared Error (RMSE), Mean Absolute Error (MAE), and $R^2$ scores compared against persistence baselines.
 - **Modular Design:** Clear separation of concerns between user interface, data pipelines, and deep learning modeling.
 
 ---
@@ -29,7 +29,7 @@ Traditional statistical methods often struggle with nonlinear dependencies and l
 | :--- | :--- |
 | **Language** | Python 3.10+ |
 | **UI Framework** | [Streamlit](https://streamlit.io/) |
-| **Deep Learning** | [PyTorch](https://pytorch.org/) |
+| **Deep Learning** | [TensorFlow](https://www.tensorflow.org/) / [Keras](https://keras.io/) |
 | **Machine Learning & Preprocessing** | [Scikit-learn](https://scikit-learn.org/) |
 | **Data Manipulation** | [Pandas](https://pandas.pydata.org/), [NumPy](https://numpy.org/) |
 | **Data Visualization** | [Matplotlib](https://matplotlib.org/) |
@@ -77,35 +77,101 @@ print(dataset.df.head())
 
 ---
 
+## 🧠 LSTM Temperature Forecasting Engine
+
+The forecasting engine ([`src.models`](file:///C:/Users/Sanjjith%20B/Downloads/Weather-Forecasting/Weather-Forecasting/src/models)) implements a TensorFlow/Keras LSTM model with chronological validation, leak-free scaling, persistence baseline benchmarking, and recursive multi-step forecasting:
+
+### Methodology
+1. **Chronological Train/Holdout Partitioning:** Observations are split strictly by chronological index (never randomly shuffled) to preserve natural temporal causality and prevent lookahead bias.
+2. **Leakage-Free Feature Scaling:** `MinMaxScaler` is fitted strictly on training observations; the test partition and future inputs are transformed using the training parameters.
+3. **Sliding-Window Sequence Generation:** Input tensors $X \in \mathbb{R}^{N \times L \times 1}$ are generated using a configurable lookback window $L$ (default 14 days) to predict target $y \in \mathbb{R}^{N \times 1}$. Context prefixing ensures zero lost observations in the holdout test set.
+4. **Compact Model Architecture:**
+   - `Input(shape=(lookback, 1))`
+   - `LSTM(units=32, activation='tanh', return_sequences=False)`
+   - `Dropout(rate=0.1)`
+   - `Dense(units=16, activation='relu')`
+   - `Dense(units=1)`
+5. **Training & Early Stopping:** Compiled with Adam optimizer and Mean Squared Error (MSE) loss. Trains with `EarlyStopping(patience=5, restore_best_weights=True)` and fixed random seeds (42) for reproducible convergence.
+6. **Honest Baseline Benchmarking:** Includes a Persistence baseline ($\hat{y}_t = y_{t-1}$) evaluated side-by-side with genuine Mean Absolute Error (MAE) and Root Mean Squared Error (RMSE) on the exact same holdout observations.
+7. **7-Day Recursive Forecasting:** Autoregressively rolls the input window forward to produce 7 future daily temperature estimates in degrees Celsius with physical plausibility validation.
+8. **Deterministic Artifact Caching:** Computes a SHA-256 fingerprint from the location, observation series signature, and model hyperparameters to persist and reload artifacts (`models/<signature>/`), avoiding redundant re-training.
+
+### Methodological Limitations
+- **Compounding Autoregressive Error:** In recursive multi-step forecasting, errors in step $t+1$ feed into inputs for step $t+2$, naturally compounding uncertainty as the horizon increases beyond 3–5 days.
+- **Univariate Formulation:** The model forecasts purely from historical temperature autoregression without incorporating exogenous atmospheric parameters (e.g., pressure differentials, wind vectors, solar irradiance, cold fronts).
+- **Seasonal Domain Representation:** Training on short datasets (< 1–2 years) limits the model's ability to learn full inter-annual seasonal transitions and extreme weather anomalies.
+
+### Example Forecasting Pipeline Usage
+
+```python
+from src.data import fetch_weather_by_city
+from src.models import train_and_forecast_pipeline
+
+# 1. Retrieve validated weather observations
+dataset, location = fetch_weather_by_city(
+    city_name="London",
+    start_date="2023-01-01",
+    end_date="2023-12-31",
+)
+
+# 2. Train LSTM, benchmark against baseline, and produce 7-day forecast
+result = train_and_forecast_pipeline(
+    data=dataset,
+    location_name=location.display_name(),
+    lookback=14,
+    test_ratio=0.2,
+    epochs=35,
+)
+
+print(result.comparison_summary())
+print("\nNext 7-Day Forecast (°C):")
+print(result.forecast_7_days)
+```
+
+---
+
 ## 📁 Project Structure
 
 ```text
 Weather-Forecasting/
-├── app.py                   # Streamlit application entry point (root-level)
+├── app.py                      # Streamlit application entry point (root-level)
 ├── src/
 │   ├── __init__.py
-│   └── data/                # Weather data pipeline module
-│       ├── __init__.py      # Public interface exports
-│       ├── client.py        # Open-Meteo historical archive client & disk cache
-│       ├── exceptions.py    # Custom pipeline exception hierarchy
-│       ├── geocoding.py     # City geocoding and location resolution
-│       ├── pipeline.py      # High-level pipeline facade & WeatherDataset
-│       ├── preprocessing.py # Missing value handling and DataFrame construction
-│       └── validation.py    # API schema, units, date sequence & quality checks
-├── tests/                   # Mocked unit test suite
+│   ├── data/                   # Weather data pipeline module
+│   │   ├── __init__.py         # Public data interface exports
+│   │   ├── client.py           # Open-Meteo historical archive client & disk cache
+│   │   ├── exceptions.py       # Custom pipeline exception hierarchy
+│   │   ├── geocoding.py        # City geocoding and location resolution
+│   │   ├── pipeline.py         # High-level pipeline facade & WeatherDataset
+│   │   ├── preprocessing.py    # Missing value handling and DataFrame construction
+│   │   └── validation.py       # API schema, units, date sequence & quality checks
+│   └── models/                 # LSTM forecasting engine module
+│       ├── __init__.py         # Public modeling interface exports
+│       ├── baseline.py         # Persistence forecaster & genuine metrics (MAE, RMSE)
+│       ├── dataset.py          # Chronological split, MinMaxScaler, sliding windows
+│       ├── exceptions.py       # Model & forecasting custom exceptions
+│       ├── lstm_model.py       # WeatherLSTMModel class, training & 7-day recursion
+│       ├── persistence.py      # Artifact serialization & signature caching
+│       └── pipeline.py         # train_and_forecast_pipeline coordinator
+├── tests/                      # Comprehensive unit test suite
 │   ├── __init__.py
-│   ├── test_client.py       # Client and disk caching tests
-│   ├── test_geocoding.py    # Geocoding search and resolution tests
-│   ├── test_pipeline.py     # End-to-end pipeline integration tests
-│   ├── test_preprocessing.py# Missing observation policy tests
-│   └── test_validation.py   # Schema, dates, and quality validation tests
-├── data/                    # Local datasets (ignored by git)
-├── models/                  # Trained model checkpoints & weights (ignored by git)
-├── requirements.txt         # Project dependencies
-├── .editorconfig            # Universal editor style formatting rules
-├── .gitattributes           # Line ending normalization and file attributes
-├── .gitignore               # Repository exclusion rules
-└── README.md                # Project documentation and guide
+│   ├── test_client.py          # Client and disk caching tests
+│   ├── test_geocoding.py       # Geocoding search and resolution tests
+│   ├── test_models_baseline.py # Persistence baseline and metrics calculation tests
+│   ├── test_models_dataset.py  # Chronological split and window dimension tests
+│   ├── test_models_lstm.py     # LSTM architecture, training, and 7-day tests
+│   ├── test_models_persistence.py # Artifact serialization and signature cache tests
+│   ├── test_models_pipeline.py # End-to-end forecasting pipeline integration tests
+│   ├── test_pipeline.py        # End-to-end data pipeline integration tests
+│   ├── test_preprocessing.py   # Missing observation policy tests
+│   └── test_validation.py      # Schema, dates, and quality validation tests
+├── data/                       # Local datasets (ignored by git)
+├── models/                     # Trained model checkpoints & weights (ignored by git)
+├── requirements.txt            # Project dependencies
+├── .editorconfig               # Universal editor style formatting rules
+├── .gitattributes              # Line ending normalization and file attributes
+├── .gitignore                  # Repository exclusion rules
+└── README.md                   # Project documentation and guide
 ```
 
 ---
