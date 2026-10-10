@@ -13,9 +13,9 @@ Traditional statistical methods often struggle with nonlinear dependencies and l
 
 ---
 
-## 🚀 Planned Features
+## 🚀 Key Features
 
-- **Interactive Streamlit Dashboard:** Web-based UI with parameter selection, date filters, and responsive charts.
+- **Interactive Streamlit Dashboard:** Web-based UI with city search, date filters, and responsive charts.
 - **Data Preprocessing & Windowing:** Automated missing-value handling, feature scaling, and rolling sliding-window sequence generation for time-series models.
 - **LSTM Deep Learning Architecture:** TensorFlow/Keras LSTM neural network designed for sequential time-series regression.
 - **Forecast Evaluation & Metrics:** Comprehensive performance tracking including Root Mean Squared Error (RMSE), Mean Absolute Error (MAE), and $R^2$ scores compared against persistence baselines.
@@ -29,10 +29,10 @@ Traditional statistical methods often struggle with nonlinear dependencies and l
 | :--- | :--- |
 | **Language** | Python 3.10+ |
 | **UI Framework** | [Streamlit](https://streamlit.io/) |
+| **Data Visualization** | [Plotly](https://plotly.com/python/), [Matplotlib](https://matplotlib.org/) |
 | **Deep Learning** | [TensorFlow](https://www.tensorflow.org/) / [Keras](https://keras.io/) |
 | **Machine Learning & Preprocessing** | [Scikit-learn](https://scikit-learn.org/) |
 | **Data Manipulation** | [Pandas](https://pandas.pydata.org/), [NumPy](https://numpy.org/) |
-| **Data Visualization** | [Matplotlib](https://matplotlib.org/) |
 | **HTTP & APIs** | [Requests](https://requests.readthedocs.io/) |
 | **Environment & Configuration** | [python-dotenv](https://github.com/theskumar/python-dotenv) |
 | **Testing** | [pytest](https://docs.pytest.org/) |
@@ -55,25 +55,6 @@ The data ingestion pipeline ([`src.data`](file:///C:/Users/Sanjjith%20B/Download
   - Supports `interpolate` (linear interpolation bounded to isolated gaps $\le 2$ consecutive days with `is_interpolated` flag tracking), `drop` (removes unobserved dates), or `error` (rejects missing data).
 - **Persistent Disk Caching:** Deterministic SHA-256 parameter-hashed local JSON cache reduces duplicate network requests and respects API rate limits.
 - **Offline Test Suite:** 100% mocked unit tests verify geocoding, client caching, schema validation, and preprocessing without requiring internet connectivity.
-
-### Example Pipeline Usage
-
-```python
-from src.data import fetch_weather_by_city
-
-# Fetch, validate, and preprocess 1 year of daily mean temperature observations
-dataset, location = fetch_weather_by_city(
-    city_name="Berlin",
-    start_date="2023-01-01",
-    end_date="2023-12-31",
-    missing_strategy="interpolate",
-    min_samples=30,
-)
-
-print(f"Location: {location.display_name()}")
-print(f"Dataset summary: {dataset.summary()}")
-print(dataset.df.head())
-```
 
 ---
 
@@ -98,35 +79,23 @@ The forecasting engine ([`src.models`](file:///C:/Users/Sanjjith%20B/Downloads/W
 
 ### Methodological Limitations
 - **Compounding Autoregressive Error:** In recursive multi-step forecasting, errors in step $t+1$ feed into inputs for step $t+2$, naturally compounding uncertainty as the horizon increases beyond 3–5 days.
-- **Univariate Formulation:** The model forecasts purely from historical temperature autoregression without incorporating exogenous atmospheric parameters (e.g., pressure differentials, wind vectors, solar irradiance, cold fronts).
+- **Univariate Formulation:** The model forecasts purely from historical temperature autoregression without incorporating exogenous atmospheric parameters (e.g., pressure differentials, wind velocity, solar irradiance, cold fronts).
 - **Seasonal Domain Representation:** Training on short datasets (< 1–2 years) limits the model's ability to learn full inter-annual seasonal transitions and extreme weather anomalies.
 
-### Example Forecasting Pipeline Usage
+---
 
-```python
-from src.data import fetch_weather_by_city
-from src.models import train_and_forecast_pipeline
+## 🖥️ Weather Forecasting Dashboard
 
-# 1. Retrieve validated weather observations
-dataset, location = fetch_weather_by_city(
-    city_name="London",
-    start_date="2023-01-01",
-    end_date="2023-12-31",
-)
+The interactive web dashboard ([`app.py`](file:///C:/Users/Sanjjith%20B/Downloads/Weather-Forecasting/Weather-Forecasting/app.py), [`src.ui`](file:///C:/Users/Sanjjith%20B/Downloads/Weather-Forecasting/Weather-Forecasting/src/ui)) features a responsive light theme with clean typography and real-time visualization:
 
-# 2. Train LSTM, benchmark against baseline, and produce 7-day forecast
-result = train_and_forecast_pipeline(
-    data=dataset,
-    location_name=location.display_name(),
-    lookback=14,
-    test_ratio=0.2,
-    epochs=35,
-)
-
-print(result.comparison_summary())
-print("\nNext 7-Day Forecast (°C):")
-print(result.forecast_7_days)
-```
+- **Location Search & Presets:** Quick-select major global cities (London, Tokyo, New York, Paris, Berlin, Chennai, Sydney) or search any worldwide locality with automated geocoding.
+- **Historical Summary KPI Cards:** Real-time metrics for mean temperature, observed range, dataset length, and data quality.
+- **Interactive Trajectory & Forecast Chart:** A Plotly chart distinguishing historical training observations, holdout ground truth, LSTM holdout estimates, and the 7-day future forecast with a shaded forecast horizon.
+- **7-Day Forecast Cards:** Dedicated forecast cards for Day 1 through Day 7 displaying day-of-week, calendar date, and forecasted temperature in °C.
+- **Evaluation & Benchmarking Cards:** Transparent side-by-side comparison of LSTM MAE and RMSE against the Persistence baseline with unit labeling (°C).
+- **Detailed Historical Timeline:** Collapsible high-resolution view of the complete historical observation series with interpolated points flagged.
+- **Educational Explanations:** Explains sliding-window lookback, recurrent memory gating, and recursive rollouts.
+- **Academic Disclaimer:** Discloses experimental nature of univariate neural forecasts.
 
 ---
 
@@ -145,14 +114,19 @@ Weather-Forecasting/
 │   │   ├── pipeline.py         # High-level pipeline facade & WeatherDataset
 │   │   ├── preprocessing.py    # Missing value handling and DataFrame construction
 │   │   └── validation.py       # API schema, units, date sequence & quality checks
-│   └── models/                 # LSTM forecasting engine module
-│       ├── __init__.py         # Public modeling interface exports
-│       ├── baseline.py         # Persistence forecaster & genuine metrics (MAE, RMSE)
-│       ├── dataset.py          # Chronological split, MinMaxScaler, sliding windows
-│       ├── exceptions.py       # Model & forecasting custom exceptions
-│       ├── lstm_model.py       # WeatherLSTMModel class, training & 7-day recursion
-│       ├── persistence.py      # Artifact serialization & signature caching
-│       └── pipeline.py         # train_and_forecast_pipeline coordinator
+│   ├── models/                 # LSTM forecasting engine module
+│   │   ├── __init__.py         # Public modeling interface exports
+│   │   ├── baseline.py         # Persistence forecaster & genuine metrics (MAE, RMSE)
+│   │   ├── dataset.py          # Chronological split, MinMaxScaler, sliding windows
+│   │   ├── exceptions.py       # Model & forecasting custom exceptions
+│   │   ├── lstm_model.py       # WeatherLSTMModel class, training & 7-day recursion
+│   │   ├── persistence.py      # Artifact serialization & signature caching
+│   │   └── pipeline.py         # train_and_forecast_pipeline coordinator
+│   └── ui/                     # UI presentation layer
+│       ├── __init__.py         # Public UI exports
+│       ├── charts.py           # Plotly interactive chart builders
+│       ├── components.py       # Reusable cards, metrics, and explanatory widgets
+│       └── styles.py           # Custom CSS for light theme
 ├── tests/                      # Comprehensive unit test suite
 │   ├── __init__.py
 │   ├── test_client.py          # Client and disk caching tests
@@ -164,6 +138,7 @@ Weather-Forecasting/
 │   ├── test_models_pipeline.py # End-to-end forecasting pipeline integration tests
 │   ├── test_pipeline.py        # End-to-end data pipeline integration tests
 │   ├── test_preprocessing.py   # Missing observation policy tests
+│   ├── test_ui_components.py   # Plotly chart and UI styling tests
 │   └── test_validation.py      # Schema, dates, and quality validation tests
 ├── data/                       # Local datasets (ignored by git)
 ├── models/                     # Trained model checkpoints & weights (ignored by git)
@@ -205,7 +180,8 @@ pip install -r requirements.txt
 pytest -v
 ```
 
-### 5. Run the Application
+### 5. Launch the Dashboard
 ```bash
 streamlit run app.py
 ```
+Open your browser to `http://localhost:8501`.
