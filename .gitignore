@@ -1,0 +1,138 @@
+# ==============================================================================
+# Weather Forecasting Using LSTM - .gitignore
+# ==============================================================================
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# Environments & Virtual Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+conda-env/
+
+# Environment variables & local secrets
+*.env
+!.env.example
+*.env.*
+*.secret
+*.key
+*.pem
+secrets.toml
+.streamlit/secrets.toml
+
+# Model artifacts, checkpoints & weights
+models/
+saved_models/
+checkpoints/
+artifacts/
+*.h5
+*.hdf5
+*.keras
+*.pt
+*.pth
+*.onnx
+*.pkl
+*.pickle
+*.joblib
+
+# Datasets and raw/processed data
+data/
+*.csv
+*.tsv
+*.parquet
+*.feather
+
+# Streamlit runtime / local cache
+.streamlit/cache/
+
+# mypy & linters
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
+
+# Editors & IDEs
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# OS-specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Temporary and backup files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+*.bak
