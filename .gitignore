@@ -79,10 +79,10 @@ secrets.toml
 .streamlit/secrets.toml
 
 # Model artifacts, checkpoints & weights
-models/
-saved_models/
-checkpoints/
-artifacts/
+/models/
+/saved_models/
+/checkpoints/
+/artifacts/
 *.h5
 *.hdf5
 *.keras
@@ -94,7 +94,7 @@ artifacts/
 *.joblib
 
 # Datasets and raw/processed data
-data/
+/data/
 *.csv
 *.tsv
 *.parquet
