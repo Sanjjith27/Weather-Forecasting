@@ -8,41 +8,55 @@ import plotly.graph_objects as go
 
 
 def _apply_light_theme_layout(fig: go.Figure, title_text: str, y_title: str = "Temperature (°C)") -> None:
-    """Apply consistent clean light aesthetic to Plotly figures."""
+    """Apply consistent clean, precision light aesthetic to Plotly figures."""
     fig.update_layout(
         title={
             "text": title_text,
-            "font": {"family": "Plus Jakarta Sans, sans-serif", "size": 15, "color": "#0f172a"},
+            "font": {"family": "Plus Jakarta Sans, -apple-system, sans-serif", "size": 15, "color": "#0f172a"},
             "x": 0.01,
             "xanchor": "left",
         },
         template="plotly_white",
         plot_bgcolor="#ffffff",
         paper_bgcolor="#ffffff",
-        font={"family": "Plus Jakarta Sans, sans-serif", "color": "#334155", "size": 12},
-        margin={"l": 40, "r": 20, "t": 50, "b": 40},
+        font={"family": "Plus Jakarta Sans, -apple-system, sans-serif", "color": "#334155", "size": 12},
+        margin={"l": 45, "r": 25, "t": 55, "b": 40},
         hovermode="x unified",
+        hoverlabel={
+            "bgcolor": "#0f172a",
+            "font": {"family": "Plus Jakarta Sans, sans-serif", "size": 12, "color": "#f8fafc"},
+            "bordercolor": "#334155",
+        },
         legend={
             "orientation": "h",
             "yanchor": "bottom",
             "y": 1.02,
             "xanchor": "right",
             "x": 1.0,
-            "font": {"size": 11},
+            "font": {"size": 11, "color": "#475569"},
         },
         xaxis={
             "showgrid": True,
             "gridcolor": "#f1f5f9",
+            "gridwidth": 1,
             "linecolor": "#cbd5e1",
+            "linewidth": 1,
             "tickformat": "%b %d",
-            "hoverformat": "%Y-%m-%d",
+            "hoverformat": "%a, %b %d, %Y",
+            "tickfont": {"size": 11, "color": "#64748b"},
         },
         yaxis={
-            "title": y_title,
+            "title": {"text": y_title, "font": {"size": 12, "color": "#475569"}},
             "showgrid": True,
             "gridcolor": "#f1f5f9",
+            "gridwidth": 1,
             "linecolor": "#cbd5e1",
+            "linewidth": 1,
             "ticksuffix": "°C",
+            "tickfont": {"size": 11, "color": "#64748b"},
+            "zeroline": True,
+            "zerolinecolor": "#e2e8f0",
+            "zerolinewidth": 1,
         },
     )
 
@@ -67,8 +81,8 @@ def create_historical_chart(df: pd.DataFrame, location_name: str) -> go.Figure:
             mode="lines",
             line={"color": "#0284c7", "width": 2},
             fill="tozeroy",
-            fillcolor="rgba(2, 132, 199, 0.06)",
-            hovertemplate="%{y:.1f}°C<extra>Historical</extra>",
+            fillcolor="rgba(2, 132, 199, 0.05)",
+            hovertemplate="%{y:.1f}°C<extra>Historical Observation</extra>",
         )
     )
 
@@ -81,7 +95,7 @@ def create_historical_chart(df: pd.DataFrame, location_name: str) -> go.Figure:
                 y=interp_subset["temperature_celsius"],
                 name="Interpolated Observations",
                 mode="markers",
-                marker={"color": "#f59e0b", "size": 6, "symbol": "circle-open"},
+                marker={"color": "#d97706", "size": 6, "symbol": "circle-open", "line": {"width": 1.5}},
                 hovertemplate="%{y:.1f}°C (Interpolated)<extra></extra>",
             )
         )
@@ -172,8 +186,8 @@ def create_forecast_comparison_chart(
             y=forecast_y,
             name="7-Day Future Forecast (LSTM)",
             mode="lines+markers",
-            line={"color": "#f59e0b", "width": 2.5},
-            marker={"size": 6, "color": "#f59e0b"},
+            line={"color": "#d97706", "width": 2.5},
+            marker={"size": 6, "color": "#d97706"},
             hovertemplate="%{y:.1f}°C<extra>Future Forecast</extra>",
         )
     )
@@ -182,12 +196,12 @@ def create_forecast_comparison_chart(
     fig.add_vrect(
         x0=forecast_7d.index[0] - pd.Timedelta(hours=12),
         x1=forecast_7d.index[-1] + pd.Timedelta(hours=12),
-        fillcolor="rgba(245, 158, 11, 0.08)",
+        fillcolor="rgba(217, 119, 6, 0.07)",
         layer="below",
         line_width=0,
         annotation_text="7-Day Forecast Horizon",
         annotation_position="top left",
-        annotation_font={"size": 10, "color": "#b45309"},
+        annotation_font={"size": 10, "color": "#b45309", "family": "Plus Jakarta Sans, sans-serif"},
     )
 
     _apply_light_theme_layout(

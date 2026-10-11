@@ -16,6 +16,7 @@ from src.ui.charts import create_forecast_comparison_chart, create_historical_ch
 from src.ui.components import (
     render_disclaimer,
     render_evaluation_metrics,
+    render_footer,
     render_forecast_cards,
     render_header,
     render_lstm_explanation,
@@ -26,7 +27,7 @@ from src.ui.styles import LIGHT_THEME_CSS
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Default curated cities for quick navigation
+# Curated global presets for quick navigation
 POPULAR_CITIES = [
     "London",
     "Tokyo",
@@ -79,23 +80,33 @@ def main() -> None:
         initial_sidebar_state="expanded",
     )
 
-    # Inject custom styling
+    # Inject custom CSS design system
     st.markdown(LIGHT_THEME_CSS, unsafe_allow_html=True)
 
     # --------------------------------------------------------------------------
     # Sidebar Controls
     # --------------------------------------------------------------------------
     with st.sidebar:
-        st.markdown("### ⚙️ Location & Parameters")
+        st.markdown('<div class="brand-eyebrow"><span class="brand-dot"></span>Configuration</div>', unsafe_allow_html=True)
 
-        selected_preset = st.selectbox("Select City", options=POPULAR_CITIES, index=0)
+        st.markdown('<div class="sidebar-section-title">Location Selection</div>', unsafe_allow_html=True)
+        selected_preset = st.selectbox(
+            "Select City",
+            options=POPULAR_CITIES,
+            index=0,
+            label_visibility="collapsed",
+        )
         if selected_preset == "Custom...":
-            city_query = st.text_input("Enter City Name", value="Munich", placeholder="e.g. Amsterdam, Chicago")
+            city_query = st.text_input(
+                "Enter City Name",
+                value="Munich",
+                placeholder="e.g. Amsterdam, Chicago",
+            )
         else:
             city_query = selected_preset
 
         st.markdown("---")
-        st.markdown("### 📅 Historical Observation Window")
+        st.markdown('<div class="sidebar-section-title">Observation Timeframe</div>', unsafe_allow_html=True)
 
         # Open-Meteo historical archive typically has a 3-5 day latency
         max_available_date = datetime.now().date() - timedelta(days=5)
@@ -114,17 +125,24 @@ def main() -> None:
         )
 
         st.markdown("---")
-        st.markdown("### 🧠 Model Hyperparameters")
-        lookback_days = st.slider("Lookback Window (Days)", min_value=7, max_value=28, value=14, step=1)
+        st.markdown('<div class="sidebar-section-title">Neural Hyperparameters</div>', unsafe_allow_html=True)
+        lookback_days = st.slider(
+            "Lookback Window (Days)",
+            min_value=7,
+            max_value=28,
+            value=14,
+            step=1,
+            help="Number of consecutive daily temperature lags fed as input sequence to the LSTM.",
+        )
 
-        fetch_button = st.button("🔄 Update Forecast", use_container_width=True, type="primary")
+        st.button("Update Forecast", use_container_width=True, type="primary")
 
     # --------------------------------------------------------------------------
     # Data Ingestion & Model Execution
     # --------------------------------------------------------------------------
     city_name = (city_query or "").strip()
     if not city_name:
-        st.warning("Please enter a valid city name in the sidebar.")
+        st.warning("Please specify a city name in the sidebar.")
         return
 
     start_str = start_date.strftime("%Y-%m-%d")
@@ -135,12 +153,12 @@ def main() -> None:
             dataset, location = get_cached_weather_data(city_name, start_str, end_str)
 
     except GeocodingError as err:
-        st.error(f"📍 **Location Not Found:** {err}")
-        st.info("Check city spelling or try selecting one of the preset locations in the sidebar.")
+        st.error(f"Location Resolution Failed: {err}")
+        st.info("Please verify the spelling or select one of the preset locations in the sidebar.")
         return
     except WeatherPipelineError as err:
-        st.error(f"🌐 **Data Retrieval Failed:** {err}")
-        st.info("The weather service could not be reached or returned an unexpected format. Please retry shortly.")
+        st.error(f"Weather Data Retrieval Failed: {err}")
+        st.info("The weather service could not be reached or returned an invalid payload. Please retry in a few moments.")
         return
     except Exception as err:
         st.error(f"An unexpected error occurred while fetching observations: {err}")
@@ -156,11 +174,11 @@ def main() -> None:
             )
 
     except InsufficientDataError as err:
-        st.error(f"⚠️ **Insufficient History:** {err}")
-        st.info("Extend the date range in the sidebar to ensure sufficient observations for training and holdout validation.")
+        st.error(f"Insufficient History: {err}")
+        st.info("Please expand the observation date range in the sidebar to provide sufficient sequences for training and holdout validation.")
         return
     except ModelEngineError as err:
-        st.error(f"🧠 **Model Training Issue:** {err}")
+        st.error(f"Model Forecasting Engine Error: {err}")
         return
     except Exception as err:
         st.error(f"An unexpected error occurred during model forecasting: {err}")
@@ -172,7 +190,7 @@ def main() -> None:
     summary = dataset.summary()
     latest_date = dataset.df.index.max()
 
-    # 1. Header with city and latest date
+    # 1. Header with city, latest date, and metadata strip
     render_header(location_name=location.display_name(), latest_date=latest_date)
 
     # 2. Historical Summary KPI cards
@@ -182,7 +200,15 @@ def main() -> None:
     render_forecast_cards(forecast_result.forecast_7_days)
 
     # 4. Interactive Forecast & Historical Comparison Chart
-    st.markdown('<div class="section-title">Forecasting Trajectory & Holdout Validation</div>', unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div class="section-header-wrap">
+            <h3 class="section-title">Forecasting Trajectory & Holdout Validation</h3>
+            <span class="section-caption">Historical observations vs. LSTM predictions and 7-day future projection</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
     comparison_fig = create_forecast_comparison_chart(
         historical_df=dataset.df,
         test_dates=forecast_result.test_dates,
@@ -201,7 +227,7 @@ def main() -> None:
     )
 
     # 6. Detailed Historical Timeline Chart
-    with st.expander("📈 View Full Historical Daily Observation Timeline", expanded=False):
+    with st.expander("Detailed Historical Observation Timeline", expanded=False):
         history_fig = create_historical_chart(dataset.df, location.display_name())
         st.plotly_chart(history_fig, use_container_width=True)
 
@@ -210,6 +236,9 @@ def main() -> None:
 
     # 8. Disclaimer
     render_disclaimer()
+
+    # 9. Minimalist Footer
+    render_footer()
 
 
 if __name__ == "__main__":

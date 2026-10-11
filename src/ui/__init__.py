@@ -4,6 +4,7 @@ from src.ui.charts import create_forecast_comparison_chart, create_historical_ch
 from src.ui.components import (
     render_disclaimer,
     render_evaluation_metrics,
+    render_footer,
     render_forecast_cards,
     render_header,
     render_lstm_explanation,
@@ -17,6 +18,7 @@ __all__ = [
     "create_historical_chart",
     "render_disclaimer",
     "render_evaluation_metrics",
+    "render_footer",
     "render_forecast_cards",
     "render_header",
     "render_lstm_explanation",
